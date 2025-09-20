@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool, QueryResultRow } from "pg";
 import type { Menu } from "./schema";
 
 const connectionString =
@@ -75,7 +75,7 @@ if (!isJdbcUrl && !haveDiscrete && connectionString) {
 
 const pool = new Pool(poolConfig);
 
-async function query<T = any>(text: string, params?: any[]) {
+async function query<T extends QueryResultRow = QueryResultRow>(text: string, params?: any[]) {
   if (!connectionString) {
     throw new Error("Missing POSTGRES_URL or DATABASE_URL env var");
   }
@@ -151,7 +151,7 @@ export type MenuRow = {
 };
 
 export async function getMenu(id: number): Promise<MenuRow | null> {
-  const { rows } = await query<any>(
+  const { rows } = await query<QueryResultRow>(
     `SELECT id, vendor, currency, items, created_at
      FROM menus
      WHERE id = $1
