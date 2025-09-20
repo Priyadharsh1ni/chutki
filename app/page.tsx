@@ -72,7 +72,7 @@ export default function Home() {
       .then(res => res.json())
       .then(data => setMenus(data.menus || []))
       .catch(err => console.error('Failed to fetch menus:', err));
-  }, []);
+  }, [file]);
 
   const FeatureCard = ({ icon, title, text }: any) => (
     <div style={{ flex: 1, minWidth: 250, border: "1px solid orange", borderRadius: "12px", padding: "24px", textAlign: "center", backgroundColor: "#fff" }}>
