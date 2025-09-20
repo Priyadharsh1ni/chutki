@@ -1,7 +1,7 @@
 import { Pool, QueryResultRow } from "pg";
 import type { Menu } from "./schema";
 
-const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL || "";
+const connectionString = process.env.DATABASE_URL || "";
 
 if (!connectionString) {
   console.warn("Postgres connection string not set. Define POSTGRES_URL or DATABASE_URL.");
