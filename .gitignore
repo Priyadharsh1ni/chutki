@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+.env*
+.vercel
+.DS_Store
+.package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.idea
+.vscode
+*.log   
