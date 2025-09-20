@@ -56,7 +56,7 @@ const isJdbcUrl = typeof connectionString === "string" && connectionString.start
 const haveDiscrete = !!(cfgUser || cfgPassword || cfgHost || cfgDatabase);
 
 const poolConfig: any = {
-  ssl: sslOption,
+  ssl: false,
   max: 10,
 };
 
