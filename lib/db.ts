@@ -1,7 +1,6 @@
 import { Pool, QueryResultRow } from "pg";
 import type { Menu } from "./schema";
 
-// Use DATABASE_URL from env
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
@@ -10,17 +9,16 @@ if (!connectionString) {
   );
 }
 
-// For Supabase on Vercel, SSL is required in production
+// Always use SSL in production, allow self-signed certificates
 const pool = new Pool({
   connectionString,
   ssl:
     process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false } // required for cloud hosts like Supabase
+      ? { rejectUnauthorized: false } // required for Supabase on Vercel
       : false,
   max: 5, // serverless-safe
 });
 
-// Generic query function
 export async function query<T extends QueryResultRow = QueryResultRow>(
   text: string,
   params?: any[]
@@ -31,7 +29,8 @@ export async function query<T extends QueryResultRow = QueryResultRow>(
   } finally {
     client.release();
   }
-}
+};
+
 
 // Ensure table exists
 export async function ensureTables(): Promise<void> {
@@ -109,3 +108,4 @@ export async function getMenu(id: number): Promise<MenuRow | null> {
     created_at: new Date(row.created_at).toISOString(),
   };
 }
+
