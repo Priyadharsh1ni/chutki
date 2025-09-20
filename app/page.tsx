@@ -217,7 +217,6 @@ export default function Home() {
               accept=".txt,text/plain"
               onChange={onFileChange}
               style={{ display: "none" }}
-              disabled={step === Step.Processing}
             />
             <div
               style={{
