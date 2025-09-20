@@ -1,43 +1,19 @@
 import { Pool, QueryResultRow } from "pg";
 import type { Menu } from "./schema";
 
-const connectionString =
-  process.env.POSTGRES_URL || process.env.DATABASE_URL || "";
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL || "";
 
 if (!connectionString) {
   console.warn("Postgres connection string not set. Define POSTGRES_URL or DATABASE_URL.");
 }
 
-// SSL handling
-// Priority:
-// 1) Explicit flags in connection string: ssl=true/false or sslmode=...
-// 2) Env overrides: PGSSLMODE=disable or POSTGRES_SSL=false
-// 3) Fallback: enable SSL for non-local hosts
-let sslOption: any = undefined;
-try {
-  const u = new URL(connectionString);
-  const params = new URLSearchParams(u.search);
-  const sslParam = params.get("ssl"); // "true" | "false"
-  const sslmodeParam = (params.get("sslmode") || "").toLowerCase();
-  const envSslMode = (process.env.PGSSLMODE || "").toLowerCase();
-  const envPostgresSsl = (process.env.POSTGRES_SSL || "").toLowerCase();
+// Detect SSL automatically
+const sslOption =
+  process.env.NODE_ENV === "production"
+    ? { rejectUnauthorized: false } // required for most cloud providers
+    : false;
 
-  const disableByParams = sslParam === "false" || sslParam === "0" || sslmodeParam === "disable";
-  const enableByParams = sslParam === "true" || sslParam === "1" || ["require","prefer","verify-ca","verify-full"].includes(sslmodeParam);
-  const disableByEnv = envSslMode === "disable" || envPostgresSsl === "false" || envPostgresSsl === "0";
-
-  if (disableByParams || disableByEnv) {
-    sslOption = false;
-  } else if (enableByParams) {
-    sslOption = { rejectUnauthorized: true };
-  } else {
-    const nonLocalHost = u.hostname !== "localhost" && u.hostname !== "127.0.0.1";
-    sslOption = nonLocalHost ? { rejectUnauthorized: true } : false;
-  }
-} catch {
-  // If URL parse fails, keep default undefined
-}
-
+// Parse connection URL
 const urlParts = (() => {
   try {
     return connectionString ? new URL(connectionString) : null;
@@ -46,48 +22,38 @@ const urlParts = (() => {
   }
 })();
 
-const cfgUser = process.env.POSTGRES_USER || process.env.PGUSER || (urlParts?.username ? decodeURIComponent(urlParts.username) : undefined);
-const cfgPassword = process.env.POSTGRES_PASSWORD || process.env.PGPASSWORD || (urlParts?.password ? decodeURIComponent(urlParts.password) : undefined);
-const cfgHost = process.env.POSTGRES_HOST || process.env.PGHOST || (urlParts?.hostname || undefined);
-const cfgPort = Number(process.env.POSTGRES_PORT || process.env.PGPORT || (urlParts?.port || 5432));
-const cfgDatabase = process.env.POSTGRES_DATABASE || process.env.PGDATABASE || (urlParts?.pathname ? urlParts.pathname.replace(/^\//, "") : undefined);
-
-const isJdbcUrl = typeof connectionString === "string" && connectionString.startsWith("jdbc:");
-const haveDiscrete = !!(cfgUser || cfgPassword || cfgHost || cfgDatabase);
+const cfgUser = process.env.POSTGRES_USER || (urlParts?.username ? decodeURIComponent(urlParts.username) : undefined);
+const cfgPassword = process.env.POSTGRES_PASSWORD || (urlParts?.password ? decodeURIComponent(urlParts.password) : undefined);
+const cfgHost = process.env.POSTGRES_HOST || urlParts?.hostname;
+const cfgPort = Number(process.env.POSTGRES_PORT || (urlParts?.port || 5432));
+const cfgDatabase = process.env.POSTGRES_DATABASE || (urlParts?.pathname ? urlParts.pathname.replace(/^\//, "") : undefined);
 
 const poolConfig: any = {
-  ssl: false,
-  max: 10,
+  ssl: sslOption,
+  max: 5, // serverless-safe pool size
 };
 
-if (!isJdbcUrl && !haveDiscrete && connectionString) {
-  // Use standard postgres/postgresql connection string only
+if (connectionString && !cfgUser && !cfgDatabase && !cfgHost) {
   poolConfig.connectionString = connectionString;
 } else {
-  // Prefer discrete env vars, and ignore JDBC-style URL
   poolConfig.user = cfgUser;
-  // Ensure password is a string when present
-  poolConfig.password = typeof cfgPassword === "string" ? cfgPassword : undefined;
+  poolConfig.password = cfgPassword;
   poolConfig.host = cfgHost;
-  poolConfig.port = Number.isFinite(cfgPort) ? cfgPort : undefined;
+  poolConfig.port = cfgPort;
   poolConfig.database = cfgDatabase;
 }
 
 const pool = new Pool(poolConfig);
 
-async function query<T extends QueryResultRow = QueryResultRow>(text: string, params?: any[]) {
-  if (!connectionString) {
-    throw new Error("Missing POSTGRES_URL or DATABASE_URL env var");
-  }
+export async function query<T extends QueryResultRow = QueryResultRow>(text: string, params?: any[]) {
+  if (!connectionString) throw new Error("Missing POSTGRES_URL or DATABASE_URL env var");
   const client = await pool.connect();
   try {
-    const res = await client.query<T>(text, params);
-    return res;
+    return await client.query<T>(text, params);
   } finally {
     client.release();
   }
 }
-
 // Schema
 // - menus
 //   id          SERIAL PRIMARY KEY
