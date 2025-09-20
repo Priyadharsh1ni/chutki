@@ -29,10 +29,10 @@ try {
   if (disableByParams || disableByEnv) {
     sslOption = false;
   } else if (enableByParams) {
-    sslOption = { rejectUnauthorized: false };
+    sslOption = { rejectUnauthorized: true };
   } else {
     const nonLocalHost = u.hostname !== "localhost" && u.hostname !== "127.0.0.1";
-    sslOption = nonLocalHost ? { rejectUnauthorized: false } : false;
+    sslOption = nonLocalHost ? { rejectUnauthorized: true } : false;
   }
 } catch {
   // If URL parse fails, keep default undefined

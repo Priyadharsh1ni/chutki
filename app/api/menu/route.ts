@@ -4,12 +4,13 @@ import { ensureTables, getMenu } from "@/lib/db";
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const id = Number(searchParams.get("id"));
-  if (!id) return new NextResponse("Missing id", { status: 400 });
-  await ensureTables();
-  const menu = await getMenu(id);
-  if (!menu) return new NextResponse("Not found", { status: 404 });
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = Number(searchParams.get("id"));
+    if (!id) return new NextResponse("Missing id", { status: 400 });
+    await ensureTables();
+    const menu = await getMenu(id);
+    if (!menu) return new NextResponse("Not found", { status: 404 });
 
   // Render a simple HTML page for quick viewing
   const itemsHtml = (menu.items as any[]).map((it) => {
@@ -55,4 +56,8 @@ export async function GET(req: NextRequest) {
   </html>`;
 
   return new NextResponse(html, { headers: { "content-type": "text/html" } });
+  } catch (e) {
+    console.error("Error in /api/menu:", e);
+    return new NextResponse("Internal Server Error", { status: 500 });
+  }
 }
