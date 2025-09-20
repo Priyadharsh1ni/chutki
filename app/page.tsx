@@ -193,7 +193,7 @@ export default function Home() {
 
         {step === Step.Processing ? (
           <div style={{ display:'flex', flexDirection:'column', alignItems: 'center' }}>
-          <img src="/gif/Cooking.gif" alt="Cooking" style={{ width: 100, height: 100 }} />
+{/*           <img src="/gif/Cooking.gif" alt="Cooking" style={{ width: 100, height: 100 }} /> */}
           <h3 style={{ margin: 0, color: "#1a202c", fontWeight: 600 }}> 
             Processing your file...
           </h3>
